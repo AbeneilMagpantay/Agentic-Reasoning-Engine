@@ -1,0 +1,13 @@
+langchain
+langgraph
+langchain-google-genai
+fastapi
+uvicorn
+qdrant-client
+langfuse
+ragas
+pydantic
+python-dotenv
+langchain-community
+langchain-qdrant
+duckduckgo-search

@@ -1,0 +1,33 @@
+# Environment Variables
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.ipynb_checkpoints/
+
+# Qdrant Vector Store (Local Volume)
+qdrant_storage/
+
+# Node/Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.DS_Store
+node_modules/
+dist/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs
+*.log

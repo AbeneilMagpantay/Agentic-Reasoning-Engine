@@ -1,0 +1,31 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-tech-bg: #09090b;
+  --color-tech-card: #18181b;
+  --color-tech-border: #27272a;
+  --color-tech-accent: #8b5cf6;
+  --color-tech-text: #f4f4f5;
+  --color-tech-muted: #a1a1aa;
+
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  @apply bg-tech-bg text-tech-text font-sans antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-tech-bg;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-tech-border rounded-full hover:bg-tech-muted/50;
+}
