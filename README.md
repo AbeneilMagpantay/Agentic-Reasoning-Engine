@@ -1,96 +1,101 @@
 # Agentic Reasoning Engine
 
-> "An autonomous, self-correcting knowledge system that doesn't just retrieve—it reasons."
+[![Python Version](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-0.2-orange)](https://langchain-ai.github.io/langgraph/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-## Overview
-The **Agentic Reasoning Engine** is a production-grade RAG platform designed for high-stakes domains. Unlike traditional RAG systems that simply retrieve and generate, this engine actively verifies its own answers, refines queries when necessary, and monitors for hallucinations.
+An autonomous, self-correcting RAG system that leverages **Graph-based State Machines** to perform deep reasoning, multi-step research, and hallucination monitoring.
 
-## Key Features
-*   **Dual-Path Routing**:
-    *   **Fast Path**: Handles chitchat and greetings instantly.
-    *   **Agentic Path**: Triggers deep reasoning for complex queries.
-*   **Self-Correction**: Automatically detects hallucinations and "not useful" answers, triggering regeneration.
-*   **Query Refinement**: If retrieval fails, the agent rewrites the query to find better documents.
-*   **Tech Stack**: LangGraph, Gemini 2.5 Flash, Qdrant, FastAPI, React + Tailwind (Frontend).
+Unlike traditional linear RAG, this engine operates as a cognitive agent: it verifies its own answers, refines search queries when results are poor, and intelligently routes questions between fast internal knowledge and deep web research.
 
-## Architecture
-The system implements a **Smart Routing** mechanism that balances speed and reliability.
+## Architectural Overview
 
-### Workflow Diagram
+The core logic is built on **LangGraph**, orchestrating a cyclic state machine with the following capabilities:
 
-```mermaid
-graph TD
-    UserInput[User Input] --> Router{Router Node<br/>(Gemini 2.5)}
-    
-    %% Path 1: Fast Mode (Chitchat)
-    Router -- "General / Chitchat" --> GeneratorFast[Generator<br/>(Creative Prompt)]
-    GeneratorFast --> End([Response])
-    
-    %% Path 2: Agentic Mode (Reasoning)
-    Router -- "Technical / Complex" --> Retrieve[Retriever<br/>(Qdrant Vector DB)]
-    Retrieve --> Grade{Grader Node<br/>(Rate Documents)}
-    
-    Grade -- "Irrelevant Docs" --> Decision1{Retry Limit?}
-    Decision1 -- "Under Limit" --> Refine[Query Refiner<br/>(Rewrite Query)]
-    Refine --> Retrieve
-    Decision1 -- "Max Retries" --> GeneratorFast
-    
-    Grade -- "Relevant Docs" --> Generate[Generator<br/>(RAG Context)]
-    Generate --> Hallucination{Hallucination Monitor<br/>(Check Facts)}
-    
-    Hallucination -- "Hallucinated / Not Useful" --> Decision2{Retry Limit?}
-    Decision2 -- "Under Limit" --> Generate
-    Decision2 -- "Max Retries" --> End
-    
-    Hallucination -- "Grounded & Useful" --> End
+1.  **Smart Routing & Intent Detection**:
+    - Uses **Gemini 2.5 Pro** as a router to classify intent (General Chat vs. Technical Research).
+    - Dynamically switches between the **Vector Store** (Qdrant) for internal knowledge and **Web Search** (DuckDuckGo) for real-time data.
+
+2.  **Self-Correction Loops**:
+    - **Grader Node**: Evaluates document relevance before generation. If retrieved docs are irrelevant, it triggers a **Query Refinement** step to rewrite the search terms.
+    - **Hallucination Monitor**: Checks the final answer against facts. If ungrounded, it rejects the answer and forces a retry.
+
+3.  **Observability & Analytics**:
+    - Integrated with **Langfuse** for end-to-end tracing.
+    - Tracks token usage, latency per node, and full execution paths for debugging complex agent behaviors.
+
+## Directory Structure
+
+```bash
+├── frontend/             # React + Vite + Tailwind (Pro Max UI)
+│   ├── src/              # Frontend components & logic
+│   └── tailwind.config.js
+├── src/                  # Core Agent Logic
+│   ├── graph/            # LangGraph State Machine
+│   │   ├── nodes/        # Individual Agent Steps (Search, Grade, Generate)
+│   │   ├── state.py      # Shared Agent State Schema
+│   │   └── workflow.py   # Graph Topology Compilation
+│   ├── main.py           # FastAPI Entrypoint
+│   └── vectorstore.py    # Qdrant Integration
+├── docker-compose.yml    # Vector Database Infrastructure
+└── requirements.txt      # Python Dependencies
 ```
 
-## Getting Started
+## Installation
 
-### Prerequisites
-*   Docker (for Qdrant)
-*   Python 3.12+
-*   Node.js & npm (for Frontend)
-*   Google Cloud API Key (Gemini)
+Requires **Python 3.12+**, **Node.js 20+**, and **Docker**.
 
-### Installation
+```bash
+git clone https://github.com/AbeneilMagpantay/Agentic-Reasoning-Engine.git
+cd Agentic-Reasoning-Engine
 
-1.  **Clone & Setup**:
-    ```bash
-    git clone <repo-url>
-    cd Agentic-Reasoning-Engine
-    ```
+# 1. Install Python Backend Dependencies
+pip install -r requirements.txt
 
-2.  **Environment Variables**:
-    Create `.env`:
-    ```ini
-    GOOGLE_API_KEY=your_key_here
-    QDRANT_URL=http://localhost:6333
-    ```
+# 2. Install Frontend Dependencies
+cd frontend
+npm install
+cd ..
+```
 
-3.  **Start Services**:
-    ```bash
-    # Start Vector DB
-    docker-compose up -d
-    
-    # Ingest Sample Data
-    python -m src.ingest
-    ```
+## Configuration
 
-4.  **Run Backend**:
-    ```bash
-    uvicorn src.main:app --reload --port 8000
-    ```
+Create a `.env` file in the root directory:
 
-5.  **Run Frontend**:
-    ```bash
-    cd frontend
-    npm install
-    npm run dev
-    ```
+```ini
+# Core AI
+GOOGLE_API_KEY=your_gemini_key
 
-## Design System (Frontend)
-Based on **UI/UX Pro Max** principles:
-*   **Style**: AI-Native, Dark Mode, Bentogrids.
-*   **Palette**: Deep Tech (Zinc/Slate base, Purple accents).
-*   **Icons**: Lucide React.
+# Vector Database
+QDRANT_URL=http://localhost:6333
+
+# Observability (Optional)
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_HOST=https://cloud.langfuse.com
+```
+
+## Usage
+
+### 1. Infrastructure (Vector DB)
+Start the Qdrant instance using Docker:
+```bash
+docker-compose up -d
+```
+
+### 2. Backend API
+Launch the FastAPI server (Agent Logic):
+```bash
+uvicorn src.main:app --port 8000 --reload
+```
+
+### 3. Frontend UI
+Launch the React Interface:
+```bash
+cd frontend
+npm run dev
+```
+
+## Disclaimer
+
+This project is an experimental implementation of Agentic RAG patterns. While effective, AI models can still hallucinate. Always verify important information.
