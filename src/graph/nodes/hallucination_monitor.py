@@ -21,7 +21,7 @@ def _get_local_grader():
 def _grade_with_local(documents: str, generation: str) -> str:
     """Grade groundedness using local ModernBERT (Hallucination Detection)."""
     from src.graph.nodes.local_grader import GradeRequest
-    CONFIDENCE_THRESHOLD = 0.6
+    CONFIDENCE_THRESHOLD = 0.7
     try:
         grader = _get_local_grader()
         # Context is the set of documents, Answer is the generation

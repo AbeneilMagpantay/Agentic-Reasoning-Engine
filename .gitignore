@@ -39,3 +39,4 @@ debug_qdrant.py
 Agentic_Reasoning_Engine_Blueprint.md
 
 models/*.pt
+langfuse/
