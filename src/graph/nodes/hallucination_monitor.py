@@ -21,20 +21,20 @@ def _get_local_grader():
 def _grade_with_local(documents: str, generation: str) -> str:
     """Grade groundedness using local ModernBERT (Hallucination Detection)."""
     from src.graph.nodes.local_grader import GradeRequest
-    CONFIDENCE_THRESHOLD = 0.8
+    CONFIDENCE_THRESHOLD = 0.6
     try:
         grader = _get_local_grader()
         # Context is the set of documents, Answer is the generation
         request = GradeRequest(context=str(documents), answer=generation)
         result = grader.grade_sync(request)
         
-        logging.info(f"Latency: {result.latency_ms:.2f}ms | Confidence: {result.confidence:.4f}")
+        print(f"---LOCAL GRADER: Latency {result.latency_ms:.2f}ms | Confidence {result.confidence:.4f}---")
         
         if result.confidence < CONFIDENCE_THRESHOLD:
              logging.warning(f"Local grader low confidence ({result.confidence:.2f}), falling back to API")
              return None
         
-        logging.info(f"SUCCESS: USING LOCAL 10MS GUARDRAIL")
+        print("---SUCCESS: USING LOCAL GUARDRAIL (LOW LATENCY)---")
         return "yes" if result.is_faithful else "no"
     except Exception as e:
         logging.error(f"Local grader error: {e}, falling back to API")
