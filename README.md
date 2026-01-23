@@ -4,63 +4,74 @@
 [![LangGraph](https://img.shields.io/badge/LangGraph-0.2-orange)](https://langchain-ai.github.io/langgraph/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-An autonomous, self-correcting RAG system that leverages **Graph-based State Machines** to perform deep reasoning, multi-step research, and hallucination monitoring.
+An autonomous, self-correcting RAG system utilizing graph-based state machines for multi-step research and groundedness verification.
 
-Unlike traditional linear RAG, this engine operates as a cognitive agent: it verifies its own answers, refines search queries when results are poor, and intelligently routes questions between fast internal knowledge and deep web research.
+This engine operates as a cognitive agent: it verifies outputs against source facts, refines search queries based on relevance scores, and manages routing between internal vector stores (Qdrant) and external research (DuckDuckGo).
 
 ## Architectural Overview
 
-The core logic is built on **LangGraph**, orchestrating a cyclic state machine with the following capabilities:
+The core logic is implemented via LangGraph, orchestrating a cyclic state machine to enable self-healing reasoning paths.
 
-1.  **Smart Routing & Intent Detection**:
-    - Uses **Gemini 2.5 Flash** as a router to classify intent (General Chat vs. Technical Research).
-    - Dynamically switches between the **Vector Store** (Qdrant) for internal knowledge and **Web Search** (DuckDuckGo) for real-time data.
+```mermaid
+graph TD
+    A[Start] --> B(Retrieve Documents)
+    B --> C(Grade Relevance)
+    C -- "Irrelevant" --> D{Refine Query}
+    D --> B
+    C -- "Relevant" --> E(Generate Answer)
+    E --> F(Hallucination Monitor)
+    F -- "Hallucinated" --> D
+    F -- "Faithful" --> G(Answer Relevance)
+    G -- "Useless" --> D
+    G -- "Useful" --> H[Success]
+```
 
-2.  **Self-Correction Loops**:
-    - **Grader Node**: Evaluates document relevance before generation. If retrieved docs are irrelevant, it triggers a **Query Refinement** step to rewrite the search terms.
-    - **Hallucination Monitor**: Checks the final answer against facts. If ungrounded, it rejects the answer and forces a retry.
+### Components
+1.  **Intent Routing**: Gemini 2.5 Flash classifies user intent to select the optimal retrieval path.
+2.  **Stateful Feedback**: Cyclic graph topology allows the agent to re-research and re-generate if the initial output fails groundedness or relevance checks.
+3.  **Observability**: Integrated Langfuse tracing for node-level latency analysis and execution auditing.
 
-3.  **Observability & Analytics**:
-    - Integrated with **Langfuse** for end-to-end tracing.
-    - Tracks token usage, latency per node, and full execution paths for debugging complex agent behaviors.
+## Performance Engineering
 
-## Enterprise Capabilities
+Verification tasks are offloaded from cloud APIs to a specialized local inference layer.
 
-> "Redefining the cost-of-quality for RAG systems."
+*   **Latency Profile**: Local ModernBERT guardrail reduces verification latency to <15ms (GPU) or <400ms (CPU), compared to typical 10s API round-trips.
+*   **Optimization**: Implemented 4-bit NormalFloat (NF4) quantization and Flash Attention 2 for efficient local deployment.
+*   **Hybrid Logic**: High-availability fallback configuration. If local confidence falls below 0.7, the system triggers a Gemini 2.5 Flash API call for deep verification.
+*   **Throughput**: Theoretical capacity of ~2.5M local checks per day on single-node GPU hardware at zero marginal compute cost.
 
-This project implements advanced engineering patterns often reserved for production environments at scale:
+## Capabilities
 
-*   **Latency Reduction (99%)**: Replaced typical API-based hallucination checking (1.5s) with a **fine-tuned local ModernBERT guardrail (<15ms)** on GPU / ~200ms on CPU.
-*   **Resilience (Hot-Swap)**: Architected a robust fallback mechanism. If the local guardrail fails or returns low confidence (<0.8), the system seamlessly hot-swaps to the Gemini 2.5 Flash API with zero downtime.
-*   **Observability**: Built a custom telemetry system (`monitor_check.py`) to audit decision quality, identifying **Model Drift** by tracking faithful vs. hallucinated responses over time.
-*   **Compliance (Golden Source)**: Enables 100% compliance checking against internal policy documents without sending sensitive data to external grading APIs.
+Architectural patterns implemented for production-grade RAG:
+
+*   **P95 Optimization**: Significant reduction in end-to-end latency by localizing binary classification tasks.
+*   **Resiliency**: Redundant grading layers through local/cloud hybrid telemetry.
+*   **Data Privacy**: Optional on-premise compliance checking against sensitive internal documentation.
 
 ## Directory Structure
 
 ```bash
-├── frontend/             # React + Vite + Tailwind (Pro Max UI)
-│   ├── src/              # Frontend components & logic
-│   └── tailwind.config.js
+├── frontend/             # React + Vite + Tailwind UI
 ├── src/                  # Core Agent Logic
 │   ├── graph/            # LangGraph State Machine
-│   │   ├── nodes/        # Individual Agent Steps (Search, Grade, Generate)
-│   │   ├── state.py      # Shared Agent State Schema
-│   │   └── workflow.py   # Graph Topology Compilation
+│   │   ├── nodes/        # Individual Agent Nodes
+│   │   ├── state.py      # State Schema
+│   │   └── workflow.py   # Workflow Configuration
 │   ├── main.py           # FastAPI Entrypoint
 │   └── vectorstore.py    # Qdrant Integration
-├── docker-compose.yml    # Vector Database Infrastructure
-└── requirements.txt      # Python Dependencies
+├── docker-compose.yml    # Infrastructure Configuration
+└── requirements.txt      # Dependency Specification
 ```
 
 ## Installation
 
-Requires **Python 3.12+**, **Node.js 20+**, and **Docker**.
+Requires Python 3.12+, Node.js 20+, and Docker.
 
 ```bash
 git clone https://github.com/AbeneilMagpantay/Agentic-Reasoning-Engine.git
 cd Agentic-Reasoning-Engine
 
-# 1. Install Python Backend Dependencies
+# 1. Install Backend Dependencies
 pip install -r requirements.txt
 
 # 2. Install Frontend Dependencies
@@ -71,16 +82,11 @@ cd ..
 
 ## Configuration
 
-Create a `.env` file in the root directory:
+Configure environment variables in a `.env` file:
 
 ```ini
-# Core AI
 GOOGLE_API_KEY=your_gemini_key
-
-# Vector Database
 QDRANT_URL=http://localhost:6333
-
-# Observability (Optional)
 LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
 LANGFUSE_HOST=https://cloud.langfuse.com
@@ -88,25 +94,10 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 
 ## Usage
 
-### 1. Infrastructure (Vector DB)
-Start the Qdrant instance using Docker:
-```bash
-docker-compose up -d
-```
-
-### 2. Backend API
-Launch the FastAPI server (Agent Logic):
-```bash
-uvicorn src.main:app --port 8000 --reload
-```
-
-### 3. Frontend UI
-Launch the React Interface:
-```bash
-cd frontend
-npm run dev
-```
+1.  **Infrastructure**: `docker-compose up -d`
+2.  **Backend**: `uvicorn src.main:app --port 8000`
+3.  **Frontend**: `cd frontend && npm run dev`
 
 ## Disclaimer
 
-This project is an experimental implementation of Agentic RAG patterns. While effective, AI models can still hallucinate. Always verify important information.
+This project is a technical implementation of agentic patterns. Output verification remains necessary for critical applications.
