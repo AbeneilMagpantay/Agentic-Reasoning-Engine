@@ -34,7 +34,7 @@ class ModernBERTClassifier(nn.Module):
             model_name,
             quantization_config=quantization_config,
             attn_implementation=attn_implementation,
-            torch_dtype=torch.float16 if quantization_config or attn_implementation else torch.float32
+            dtype=torch.float16 if quantization_config or attn_implementation else torch.float32
         )
         self.dropout = nn.Dropout(0.1)
         self.classifier = nn.Linear(768, num_labels)
