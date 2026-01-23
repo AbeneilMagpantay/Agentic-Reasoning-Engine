@@ -1,0 +1,62 @@
+[
+  {
+    "text": "Context: The Eiffel Tower was completed in 1889 for the World's Fair in Paris. Answer: The Eiffel Tower was finished in 1889 for a fair in Paris.",
+    "label": 1,
+    "topic": "History",
+    "type": "faithful"
+  },
+  {
+    "text": "Context: The Eiffel Tower was completed in 1889 for the World's Fair in Paris. Answer: The Eiffel Tower was completed in 1901 for a French wedding.",
+    "label": 0,
+    "topic": "History",
+    "type": "hallucination"
+  },
+  {
+    "text": "Context: Photosynthesis is the process where plants convert sunlight into chemical energy. Answer: Plants use photosynthesis to turn light from the sun into energy.",
+    "label": 1,
+    "topic": "Science",
+    "type": "faithful"
+  },
+  {
+    "text": "Context: Photosynthesis is the process where plants convert sunlight into chemical energy. Answer: Photosynthesis is the process where plants turn oxygen into sunlight.",
+    "label": 0,
+    "topic": "Science",
+    "type": "hallucination"
+  },
+  {
+    "text": "Context: The company reported a 15% increase in revenue, totaling $2.5 million this quarter. Answer: Revenue grew by 15% to reach 2.5 million dollars.",
+    "label": 1,
+    "topic": "Finance",
+    "type": "faithful"
+  },
+  {
+    "text": "Context: The company reported a 15% increase in revenue, totaling $2.5 million this quarter. Answer: The company reported a 50% decrease in revenue this quarter.",
+    "label": 0,
+    "topic": "Finance",
+    "type": "hallucination"
+  },
+  {
+    "text": "Context: Mount Everest is located in the Himalayas at 8,849 meters above sea level. Answer: Everest stands at 8,849m in the Himalayan mountain range.",
+    "label": 1,
+    "topic": "Geography",
+    "type": "faithful"
+  },
+  {
+    "text": "Context: Mount Everest is located in the Himalayas at 8,849 meters above sea level. Answer: Mount Everest is in the Alps at 6,500 meters elevation.",
+    "label": 0,
+    "topic": "Geography",
+    "type": "hallucination"
+  },
+  {
+    "text": "Context: The new processor has 8 cores and runs at 3.5 GHz base frequency. Answer: An 8-core processor with 3.5 GHz base clock was released.",
+    "label": 1,
+    "topic": "Technology",
+    "type": "faithful"
+  },
+  {
+    "text": "Context: The new processor has 8 cores and runs at 3.5 GHz base frequency. Answer: The processor has 16 cores and runs at 5.0 GHz.",
+    "label": 0,
+    "topic": "Technology",
+    "type": "hallucination"
+  }
+]

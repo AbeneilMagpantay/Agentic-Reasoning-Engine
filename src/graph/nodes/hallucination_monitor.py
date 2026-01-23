@@ -1,7 +1,44 @@
+import os
+import logging
 from typing import Literal
 from pydantic import BaseModel, Field
 from src.graph.state import AgentState
 from src.llm import llm
+
+# Hot-swap configuration
+USE_LOCAL_GRADER = os.getenv("USE_LOCAL_GRADER", "false").lower() == "true"
+
+# Lazy load local grader
+_local_grader = None
+
+def _get_local_grader():
+    global _local_grader
+    if _local_grader is None:
+        from src.graph.nodes.local_grader import LocalHallucinationGrader
+        _local_grader = LocalHallucinationGrader()
+    return _local_grader
+
+def _grade_with_local(documents: str, generation: str) -> str:
+    """Grade groundedness using local ModernBERT (Hallucination Detection)."""
+    from src.graph.nodes.local_grader import GradeRequest
+    CONFIDENCE_THRESHOLD = 0.8
+    try:
+        grader = _get_local_grader()
+        # Context is the set of documents, Answer is the generation
+        request = GradeRequest(context=str(documents), answer=generation)
+        result = grader.grade_sync(request)
+        
+        logging.info(f"Latency: {result.latency_ms:.2f}ms | Confidence: {result.confidence:.4f}")
+        
+        if result.confidence < CONFIDENCE_THRESHOLD:
+             logging.warning(f"Local grader low confidence ({result.confidence:.2f}), falling back to API")
+             return None
+        
+        logging.info(f"SUCCESS: USING LOCAL 10MS GUARDRAIL")
+        return "yes" if result.is_faithful else "no"
+    except Exception as e:
+        logging.error(f"Local grader error: {e}, falling back to API")
+        return None
 
 class GradeHallucinations(BaseModel):
     """Binary score for hallucination check in generation text."""
@@ -18,7 +55,6 @@ class GradeAnswer(BaseModel):
 def check_hallucination(state: AgentState) -> dict:
     """
     Checks if the generation is a hallucination or not supported by documents.
-    Returns a status key in the state.
     """
     print("---CHECK HALLUCINATION---")
     documents = state["documents"]
@@ -27,28 +63,39 @@ def check_hallucination(state: AgentState) -> dict:
     
     route = state.get("route", "vectorstore")
     
-    # 1. Check Groundedness
-    structured_llm_grader = llm.with_structured_output(GradeHallucinations)
+    score = None
     
-    if route == "web_search":
-        print("---HALLUCINATION CHECK: WEB SEARCH MODE (LENIENT)---")
-        system = """You are a lenient grader assessing whether an LLM generation is grounded in a set of web search snippets.
-        The snippets may be partial or incomplete. 
-        If the answer is reasonable given the context, grade it as 'yes'.
-        Only grade 'no' if the answer directly contradicts the snippets or is completely unrelated."""
-    else:
-        print("---HALLUCINATION CHECK: DOCUMENT MODE (STRICT)---")
-        system = """You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts. \n 
-        Give a binary score 'yes' or 'no'. 'yes' means that the answer is grounded in and supported by the set of facts."""
+    # Try Local Grader first if enabled (only for non-web search usually, or if we trust it for web too)
+    # The training data was general, so it might work for web snippets too.
+    if USE_LOCAL_GRADER:
+        score = _grade_with_local(str(documents), generation)
     
-    hallucination_prompt = f"System: {system}\nSet of Facts: {documents}\nLLM Generation: {generation}"
-    
-    try:
-        grade = structured_llm_grader.invoke(hallucination_prompt)
-        score = grade.binary_score
-    except Exception as e:
-        print(f"Hallucination grading error: {e}")
-        score = "no"
+    if score is None:
+        if USE_LOCAL_GRADER:
+             print("---LOCAL GRADER FALLBACK: Calling API---")
+        
+        # API Grading Logic
+        structured_llm_grader = llm.with_structured_output(GradeHallucinations)
+        
+        if route == "web_search":
+            print("---HALLUCINATION CHECK: WEB SEARCH MODE (LENIENT)---")
+            system = """You are a lenient grader assessing whether an LLM generation is grounded in a set of web search snippets.
+            The snippets may be partial or incomplete. 
+            If the answer is reasonable given the context, grade it as 'yes'.
+            Only grade 'no' if the answer directly contradicts the snippets or is completely unrelated."""
+        else:
+            print("---HALLUCINATION CHECK: DOCUMENT MODE (STRICT)---")
+            system = """You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts. \n 
+            Give a binary score 'yes' or 'no'. 'yes' means that the answer is grounded in and supported by the set of facts."""
+        
+        hallucination_prompt = f"System: {system}\nSet of Facts: {documents}\nLLM Generation: {generation}"
+        
+        try:
+            grade = structured_llm_grader.invoke(hallucination_prompt)
+            score = grade.binary_score
+        except Exception as e:
+            print(f"Hallucination grading error: {e}")
+            score = "no"
 
     retry_count = state.get("retry_count", 0)
     

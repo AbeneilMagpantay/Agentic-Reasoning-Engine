@@ -31,3 +31,11 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Shadow Bridge & Artifacts
+Maximizing-Antigravity/
+debug_qdrant.py
+
+Agentic_Reasoning_Engine_Blueprint.md
+
+models/*.pt

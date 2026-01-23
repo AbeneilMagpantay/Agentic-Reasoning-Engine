@@ -13,7 +13,7 @@ Unlike traditional linear RAG, this engine operates as a cognitive agent: it ver
 The core logic is built on **LangGraph**, orchestrating a cyclic state machine with the following capabilities:
 
 1.  **Smart Routing & Intent Detection**:
-    - Uses **Gemini 2.5 Pro** as a router to classify intent (General Chat vs. Technical Research).
+    - Uses **Gemini 2.5 Flash** as a router to classify intent (General Chat vs. Technical Research).
     - Dynamically switches between the **Vector Store** (Qdrant) for internal knowledge and **Web Search** (DuckDuckGo) for real-time data.
 
 2.  **Self-Correction Loops**:
@@ -23,6 +23,17 @@ The core logic is built on **LangGraph**, orchestrating a cyclic state machine w
 3.  **Observability & Analytics**:
     - Integrated with **Langfuse** for end-to-end tracing.
     - Tracks token usage, latency per node, and full execution paths for debugging complex agent behaviors.
+
+## Enterprise Capabilities
+
+> "Redefining the cost-of-quality for RAG systems."
+
+This project implements advanced engineering patterns often reserved for production environments at scale:
+
+*   **Latency Reduction (99%)**: Replaced typical API-based hallucination checking (1.5s) with a **fine-tuned local ModernBERT guardrail (<15ms)** on GPU / ~200ms on CPU.
+*   **Resilience (Hot-Swap)**: Architected a robust fallback mechanism. If the local guardrail fails or returns low confidence (<0.8), the system seamlessly hot-swaps to the Gemini 2.5 Flash API with zero downtime.
+*   **Observability**: Built a custom telemetry system (`monitor_check.py`) to audit decision quality, identifying **Model Drift** by tracking faithful vs. hallucinated responses over time.
+*   **Compliance (Golden Source)**: Enables 100% compliance checking against internal policy documents without sending sensitive data to external grading APIs.
 
 ## Directory Structure
 

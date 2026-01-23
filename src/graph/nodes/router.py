@@ -15,16 +15,25 @@ def route_question(state: AgentState):
     Routes the question to the appropriate data source.
     """
     print("---ROUTE QUESTION---")
+    
+    # Manual Override Check (Enterprise Feature)
+    if state.get("route") in ["vectorstore", "web_search", "general"]:
+         print(f"---ROUTE PRE-SELECTED: {state['route']}---")
+         return {"route": state["route"]}
+
     question = state["question"]
     
     structured_llm_router = llm.with_structured_output(RouteQuery)
     
     # Prompt the router
     system = """You are an expert at routing a user question to a vectorstore or web search.
-    The vectorstore contains documents related to 'agentic reasoning', 'langgraph', and 'adversarial attacks'.
+    The vectorstore contains documents about:
+    1. 'Agentic Reasoning', 'LangGraph', 'Adversarial Attacks'
+    2. 'Antigravity Corp', 'Financial Reports', 'Revenue', 'Q3 2025' (Internal Data)
+    
     Use the vectorstore for questions on these topics.
     Use 'general' for greetings, chitchat, or simple questions that don't need retrieval (e.g. "Hello", "How are you").
-    Otherwise, use web-search."""
+    Otherwise, use web-search (e.g. for current world events, weather, or generic companies like Microsoft/Apple that aren't us)."""
     
     route_prompt = f"System: {system}\nQuestion: {question}"
     

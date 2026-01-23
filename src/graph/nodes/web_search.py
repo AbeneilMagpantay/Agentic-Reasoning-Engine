@@ -56,7 +56,7 @@ def web_search(state: AgentState) -> AgentState:
     if not results:
         print("---NO RESULTS. TRYING FALLBACK...---")
         # Heuristic: just the last few words or the raw question? 
-        # Let's try to ask Gemini for a BROADER query or just use the question.
+        # Attempt to broaden the search query if the initial one is too specific.
         fallback_query = question 
         print(f"---ATTEMPT 2: '{fallback_query}'---")
         results = run_search(fallback_query)

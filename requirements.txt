@@ -11,3 +11,7 @@ python-dotenv
 langchain-community
 langchain-qdrant
 duckduckgo-search
+# Local Grader (Phase 5)
+torch
+transformers
+nest_asyncio
