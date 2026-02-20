@@ -27,7 +27,7 @@ graph TD
 ```
 
 ### Components
-1.  **Intent Routing**: Gemini 2.5 Flash classifies user intent to select the optimal retrieval path.
+1.  **Intent Routing**: Claude Opus3.5 classifies user intent to select the optimal retrieval path.
 2.  **Stateful Feedback**: Cyclic graph topology allows the agent to re-research and re-generate if the initial output fails groundedness or relevance checks.
 3.  **Observability**: Integrated Langfuse tracing for node-level latency analysis and execution auditing.
 
